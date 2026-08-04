@@ -9,8 +9,11 @@ export default function ProblemsClient({ problems, dailyChallengeId }: { problem
   const [difficulty, setDifficulty] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [tagFilter, setTagFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   const filteredProblems = useMemo(() => {
+    setCurrentPage(1); // Reset page on filter change
     return problems.filter(p => {
       const matchSearch = p.title.toLowerCase().includes(search.toLowerCase());
       const matchDifficulty = difficulty ? p.difficulty.toLowerCase() === difficulty.toLowerCase() : true;
@@ -20,6 +23,12 @@ export default function ProblemsClient({ problems, dailyChallengeId }: { problem
       return matchSearch && matchDifficulty && matchStatus && matchTag;
     });
   }, [problems, search, difficulty, statusFilter, tagFilter]);
+
+  const totalPages = Math.ceil(filteredProblems.length / itemsPerPage);
+  const paginatedProblems = filteredProblems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const totalSolved = useMemo(() => problems.filter(p => p.status === 'solved').length, [problems]);
+  const progressPercent = problems.length > 0 ? (totalSolved / problems.length) * 100 : 0;
 
   // Extract all unique tags
   const allTags = useMemo(() => {
@@ -77,6 +86,21 @@ export default function ProblemsClient({ problems, dailyChallengeId }: { problem
         </div>
       </div>
 
+      <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1rem 1.5rem' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+            <span style={{ fontWeight: 500 }}>Overall Progress</span>
+            <span style={{ color: 'var(--text-secondary)' }}>{totalSolved} / {problems.length} Solved</span>
+          </div>
+          <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--bg-tertiary)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+            <div style={{ width: `${progressPercent}%`, height: '100%', backgroundColor: 'var(--success)', transition: 'width 0.5s ease-in-out' }} />
+          </div>
+        </div>
+        <div style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--success)' }}>
+          {progressPercent.toFixed(1)}%
+        </div>
+      </div>
+
       <div className="card" style={{ padding: '0', overflowX: 'auto' }}>
         <table className={styles.problemsTable}>
           <thead>
@@ -88,8 +112,8 @@ export default function ProblemsClient({ problems, dailyChallengeId }: { problem
             </tr>
           </thead>
           <tbody>
-            {filteredProblems.length > 0 ? (
-              filteredProblems.map(problem => {
+            {paginatedProblems.length > 0 ? (
+              paginatedProblems.map(problem => {
                 const tagList = problem.tags.split(',').filter(Boolean);
                 
                 return (
@@ -129,6 +153,28 @@ export default function ProblemsClient({ problems, dailyChallengeId }: { problem
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '1.5rem' }}>
+          <button 
+            className="btn btn-secondary" 
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          >
+            Previous
+          </button>
+          <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            Page {currentPage} of {totalPages}
+          </span>
+          <button 
+            className="btn btn-secondary" 
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }

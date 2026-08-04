@@ -43,6 +43,35 @@ export default async function LeaderboardPage() {
 
   const restOfUsers = formattedUsers.slice(3);
 
+  let currentUserRank = null;
+  let isCurrentUserInTop50 = false;
+  
+  if (session?.user?.email) {
+    isCurrentUserInTop50 = formattedUsers.some(u => u.email === session.user?.email);
+    
+    if (!isCurrentUserInTop50) {
+      const currentUserData = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: {
+          id: true, name: true, email: true, xp: true, streak: true,
+          submissions: { where: { status: 'Accepted' }, select: { problemId: true } }
+        }
+      });
+      
+      if (currentUserData) {
+        const higherRankedCount = await prisma.user.count({
+          where: { xp: { gt: currentUserData.xp } }
+        });
+        
+        currentUserRank = {
+          ...currentUserData,
+          rank: higherRankedCount + 1,
+          problemsSolved: new Set(currentUserData.submissions.map(s => s.problemId)).size,
+        };
+      }
+    }
+  }
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -57,7 +86,9 @@ export default async function LeaderboardPage() {
               key={user.id} 
               className={`${styles.podiumItem} ${user.rank === 1 ? styles.rank1 : user.rank === 2 ? styles.rank2 : styles.rank3}`}
             >
-              <div className={styles.rankBadge}>#{user.rank}</div>
+              <div className={styles.rankBadge} style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>
+                {user.rank === 1 ? '👑' : user.rank === 2 ? '🥈' : '🥉'}
+              </div>
               <div className={styles.podiumAvatar}>
                 {user.name?.charAt(0).toUpperCase() || 'U'}
               </div>
@@ -105,6 +136,32 @@ export default async function LeaderboardPage() {
                   </tr>
                 );
               })}
+              
+              {currentUserRank && (
+                <>
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-tertiary)', padding: '0.5rem' }}>
+                      ...
+                    </td>
+                  </tr>
+                  <tr style={{ background: 'rgba(168, 85, 247, 0.1)', borderTop: '2px solid var(--border-color)' }}>
+                    <td className={styles.rankCell}>#{currentUserRank.rank}</td>
+                    <td>
+                      <div className={styles.userCell}>
+                        <div className={styles.smallAvatar} style={{ background: '#a855f7', color: '#fff' }}>
+                          {currentUserRank.name?.charAt(0).toUpperCase() || 'U'}
+                        </div>
+                        <span style={{ fontWeight: 700, color: '#a855f7' }}>
+                          {currentUserRank.name || 'Anonymous'} (You)
+                        </span>
+                      </div>
+                    </td>
+                    <td>{currentUserRank.problemsSolved}</td>
+                    <td>{currentUserRank.streak} 🔥</td>
+                    <td className={styles.xpCell}>{currentUserRank.xp}</td>
+                  </tr>
+                </>
+              )}
             </tbody>
           </table>
         </div>

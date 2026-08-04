@@ -12,6 +12,10 @@
   --accent-primary-hover: #0550ae;
   --accent-secondary: #ffa116;
   
+  --color-primary-light: #9be9a8;
+  --color-primary: #40c463;
+  --color-primary-dark: #216e39;
+  
   --success: #1a7f37;
   --warning: #9a6700;
   --error: #cf222e;
@@ -47,6 +51,10 @@
   --accent-primary: #2f81f7;
   --accent-primary-hover: #1f6feb;
   --accent-secondary: #ffa116;
+  
+  --color-primary-light: #0e4429;
+  --color-primary: #2ea043;
+  --color-primary-dark: #39d353;
   
   --success: #2ea043;
   --warning: #d29922;

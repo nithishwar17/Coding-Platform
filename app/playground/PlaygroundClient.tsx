@@ -5,6 +5,7 @@ import Editor from "@monaco-editor/react";
 import styles from "./page.module.css";
 import { useTheme } from "next-themes";
 import { Problem } from "@prisma/client";
+import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
 
 const CODE_TEMPLATES: Record<string, string> = {
   javascript: "function solution(nums, target) {\n  \n}",
@@ -201,9 +202,9 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
 
   return (
     <div className={styles.playground}>
-      <div style={{ display: 'flex', flexDirection: 'row', width: '100%', height: '100%' }}>
+      <PanelGroup orientation="horizontal" style={{ width: '100%', height: '100%' }}>
       {/* Left Pane: Problem Info */}
-      <div className={styles.pane} style={{ width: '45%', display: 'flex', flexDirection: 'column' }}>
+      <Panel defaultSize={45} minSize={20} className={styles.pane} style={{ display: 'flex', flexDirection: 'column' }}>
         <div className={styles.tabs}>
           <div 
             className={`${styles.tab} ${activeTab === 'description' ? styles.active : ''}`}
@@ -375,13 +376,14 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
             </div>
           )}
         </div>
-      </div>
+      </Panel>
 
-      <div className={styles.resizeHandle} />
+      <PanelResizeHandle className={styles.resizeHandle} />
 
       {/* Right Pane: Code Editor and Output */}
-      <div className={styles.pane} style={{ width: '55%', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderBottom: '1px solid var(--border-color)' }}>
+      <Panel defaultSize={55} minSize={20} className={styles.pane} style={{ display: 'flex', flexDirection: 'column' }}>
+        <PanelGroup orientation="vertical">
+        <Panel defaultSize={60} minSize={20} style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px solid var(--border-color)' }}>
           <div className={styles.editorToolbar}>
             <select 
               className={styles.languageSelect}
@@ -427,9 +429,11 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
               />
             )}
           </div>
-        </div>
+        </Panel>
 
-        <div className={styles.outputPane} style={{ flex: 1 }}>
+        <PanelResizeHandle style={{ height: '8px', cursor: 'row-resize', background: 'var(--border-color)' }} />
+
+        <Panel defaultSize={40} minSize={20} className={styles.outputPane} style={{ display: 'flex', flexDirection: 'column' }}>
           <div className={styles.outputTabs}>
             <div 
               className={`${styles.outputTab} ${activeOutputTab === 'testcases' ? styles.active : ''}`}
@@ -593,9 +597,10 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
               </>
             )}
           </div>
-        </div>
-      </div>
-      </div>
+        </Panel>
+        </PanelGroup>
+      </Panel>
+      </PanelGroup>
 
       {showSettings && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>

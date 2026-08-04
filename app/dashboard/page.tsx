@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import styles from "./page.module.css";
 import { getDailyChallenge } from "@/lib/dailyChallenge";
+import Heatmap from "./Heatmap";
 
 export const metadata = {
   title: "Dashboard - CodeNexus",
@@ -22,9 +23,7 @@ export default async function DashboardPage() {
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
     include: {
-      submissions: {
-        where: { status: "Accepted" }
-      }
+      submissions: true
     }
   });
 
@@ -33,7 +32,7 @@ export default async function DashboardPage() {
   }
 
   // Calculate unique problems solved based on Accepted submissions
-  const uniqueSolved = new Set(user.submissions.map(s => s.problemId)).size;
+  const uniqueSolved = new Set(user.submissions.filter(s => s.status === "Accepted").map(s => s.problemId)).size;
   const dailyChallenge = await getDailyChallenge();
 
   return (
@@ -62,7 +61,9 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <h2 style={{ marginBottom: '1.5rem', fontWeight: 600, fontSize: '1.5rem' }}>Quick Actions</h2>
+      <Heatmap submissions={user.submissions} />
+
+      <h2 style={{ marginBottom: '1.5rem', marginTop: '2rem', fontWeight: 600, fontSize: '1.5rem' }}>Quick Actions</h2>
       <div className={styles.actionsGrid}>
         {dailyChallenge && (
           <Link href={`/playground?id=${dailyChallenge.id}`} className={styles.actionCard} style={{ borderColor: 'var(--color-primary)', background: 'var(--bg-tertiary)' }}>
