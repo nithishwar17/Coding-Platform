@@ -86,7 +86,7 @@ export async function POST(req: Request) {
     }
 
     // Create Submission record
-    await prisma.submission.create({
+    const submission = await prisma.submission.create({
       data: {
         code: sourceCode,
         language,
@@ -148,7 +148,8 @@ export async function POST(req: Request) {
       memory: maxMemory,
       failedCase,
       expected: expectedOutput,
-      actual: actualOutput
+      actual: actualOutput,
+      submissionId: submission.id
     });
 
   } catch (error: any) {

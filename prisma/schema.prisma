@@ -20,6 +20,8 @@ model User {
   submissions   Submission[]
   accounts      Account[]
   sessions      Session[]
+  solutionPosts SolutionPost[]
+  upvotes       Upvote[]
 }
 
 model Problem {
@@ -29,8 +31,10 @@ model Problem {
   description String
   tags        String
   testCases   TestCase[]
-  starterCode String?      // JSON stringified map of language -> boilerplate
-  submissions Submission[]
+  starterCode   String?      // JSON stringified map of language -> boilerplate
+  submissions   Submission[]
+  solutionPosts SolutionPost[]
+  studyPlans    StudyPlanProblem[]
 }
 
 model Submission {
@@ -47,6 +51,8 @@ model Submission {
   
   problemId Int
   problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  solutionPost SolutionPost?
 }
 
 model Account {
@@ -92,4 +98,56 @@ model TestCase {
   
   problemId      Int
   problem        Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+}
+
+model SolutionPost {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  
+  submissionId String  @unique // A solution is tied to a specific accepted submission
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  
+  problemId   Int
+  problem     Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  upvotes     Upvote[]
+}
+
+model Upvote {
+  id             String   @id @default(cuid())
+  
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  solutionPostId String
+  solutionPost   SolutionPost @relation(fields: [solutionPostId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, solutionPostId])
+}
+
+model StudyPlan {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  slug        String   @unique
+  problems    StudyPlanProblem[]
+}
+
+model StudyPlanProblem {
+  id          String   @id @default(cuid())
+  
+  studyPlanId String
+  studyPlan   StudyPlan @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
+  
+  problemId   Int
+  problem     Problem   @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  
+  order       Int      @default(0)
+  
+  @@unique([studyPlanId, problemId])
 }

@@ -14,6 +14,7 @@
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^3.0.3",
     "leetcode-query": "^2.0.1",
+    "monaco-editor": "^0.44.0",
     "monaco-vim": "^0.4.4",
     "next": "16.2.12",
     "next-auth": "^4.24.15",

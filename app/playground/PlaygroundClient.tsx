@@ -6,6 +6,7 @@ import styles from "./page.module.css";
 import { useTheme } from "next-themes";
 import { Problem } from "@prisma/client";
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
+import SolutionsTab from "./SolutionsTab";
 
 const CODE_TEMPLATES: Record<string, string> = {
   javascript: "function solution(nums, target) {\n  \n}",
@@ -59,10 +60,56 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Publish Solution State
+  const [lastSubmissionId, setLastSubmissionId] = useState<string | null>(null);
+  const [showPublishForm, setShowPublishForm] = useState(false);
+  const [publishTitle, setPublishTitle] = useState("");
+  const [publishDesc, setPublishDesc] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
+  
   // Settings State
   const [showSettings, setShowSettings] = useState(false);
   const [fontSize, setFontSize] = useState(14);
+  const [vimMode, setVimMode] = useState(false);
   const [editorInstance, setEditorInstance] = useState<any>(null);
+  const vimInstanceRef = useRef<any>(null);
+
+  useEffect(() => {
+    // Load settings
+    const savedFontSize = localStorage.getItem('codenexus_fontSize');
+    const savedTheme = localStorage.getItem('codenexus_editorTheme');
+    const savedVim = localStorage.getItem('codenexus_vimMode');
+    if (savedFontSize) setFontSize(Number(savedFontSize));
+    if (savedTheme) setEditorThemeOverride(savedTheme);
+    if (savedVim) setVimMode(savedVim === 'true');
+  }, []);
+
+  useEffect(() => {
+    // Save settings
+    localStorage.setItem('codenexus_fontSize', fontSize.toString());
+    localStorage.setItem('codenexus_editorTheme', editorThemeOverride);
+    localStorage.setItem('codenexus_vimMode', vimMode.toString());
+  }, [fontSize, editorThemeOverride, vimMode]);
+
+  useEffect(() => {
+    if (editorInstance) {
+      if (vimMode) {
+        if (!vimInstanceRef.current) {
+          const statusNode = document.getElementById('vim-status-bar');
+          if (statusNode) {
+            import('monaco-vim').then(({ initVimMode }) => {
+              vimInstanceRef.current = initVimMode(editorInstance, statusNode);
+            }).catch(e => console.error("Failed to load monaco-vim", e));
+          }
+        }
+      } else {
+        if (vimInstanceRef.current) {
+          vimInstanceRef.current.dispose();
+          vimInstanceRef.current = null;
+        }
+      }
+    }
+  }, [editorInstance, vimMode]);
   
   // Test Case Viewer State
   const [activeOutputTab, setActiveOutputTab] = useState<'testcases' | 'results'>('testcases');
@@ -189,6 +236,9 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
             failedCase: data.failedCase
           }
         });
+        if (data.submissionId) {
+          setLastSubmissionId(data.submissionId);
+        }
         if (data.verdict === 'Accepted') {
           alert("Submission Accepted! XP and Streak updated.");
         }
@@ -229,6 +279,12 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
             onClick={() => { setActiveTab('submissions'); fetchSubmissions(); setSelectedSubmission(null); }}
           >
             Submissions
+          </div>
+          <div 
+            className={`${styles.tab} ${activeTab === 'solutions' ? styles.active : ''}`}
+            onClick={() => setActiveTab('solutions')}
+          >
+            Solutions
           </div>
         </div>
 
@@ -333,6 +389,9 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
               </div>
             </div>
           )}
+          {activeTab === 'solutions' && (
+            <SolutionsTab problemId={problem.id} />
+          )}
           {activeTab === 'submissions' && (
             <div>
               <h2 style={{ marginBottom: '1rem' }}>Submissions</h2>
@@ -412,21 +471,41 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
 
           <div style={{ flex: 1 }}>
             {mounted && (
-              <Editor
-                height="100%"
-                theme={editorTheme}
-                language={language}
-                value={code}
-                onChange={(val) => setCode(val || "")}
-                onMount={(editor) => setEditorInstance(editor)}
-                options={{
-                  minimap: { enabled: false },
-                  fontSize: fontSize,
-                  fontFamily: 'var(--font-geist-mono), monospace',
-                  padding: { top: 16 },
-                  scrollBeyondLastLine: false,
-                }}
-              />
+              <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flex: 1, minHeight: 0 }}>
+                  <Editor
+                    height="100%"
+                    theme={editorTheme}
+                    language={language}
+                    value={code}
+                    onChange={(val) => setCode(val || "")}
+                    onMount={(editor) => setEditorInstance(editor)}
+                    options={{
+                      minimap: { enabled: false },
+                      fontSize: fontSize,
+                      fontFamily: 'var(--font-geist-mono), monospace',
+                      padding: { top: 16 },
+                      scrollBeyondLastLine: false,
+                    }}
+                  />
+                </div>
+                {vimMode && (
+                  <div 
+                    id="vim-status-bar" 
+                    style={{ 
+                      height: '24px', 
+                      background: 'var(--bg-secondary)', 
+                      color: 'var(--text-primary)', 
+                      fontFamily: 'var(--font-geist-mono)', 
+                      fontSize: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '0 8px',
+                      borderTop: '1px solid var(--border-color)'
+                    }} 
+                  />
+                )}
+              </div>
             )}
           </div>
         </Panel>
@@ -532,8 +611,66 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
                 {output ? (
                   <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-geist-mono)' }}>
                     {output.status && (
-                      <div style={{ color: output.status === 'Accepted' ? 'var(--success)' : 'var(--error)', fontWeight: 'bold', marginBottom: '1rem', fontSize: '1.2rem' }}>
-                        {output.status}
+                      <div style={{ color: output.status === 'Accepted' ? 'var(--success)' : 'var(--error)', fontWeight: 'bold', marginBottom: '1rem', fontSize: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>{output.status}</span>
+                        {output.status === 'Accepted' && lastSubmissionId && (
+                          <button 
+                            className="btn btn-primary" 
+                            style={{ fontSize: '0.9rem', padding: '0.4rem 0.8rem' }}
+                            onClick={() => setShowPublishForm(!showPublishForm)}
+                          >
+                            Share Solution
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    
+                    {showPublishForm && output.status === 'Accepted' && (
+                      <div style={{ background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem', border: '1px solid var(--border-color)' }}>
+                        <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontFamily: 'var(--font-geist-sans)' }}>Publish to Community</h3>
+                        <input 
+                          type="text" 
+                          placeholder="Title (e.g., O(N) Time, O(1) Space - Fast & Clean)" 
+                          value={publishTitle}
+                          onChange={(e) => setPublishTitle(e.target.value)}
+                          style={{ width: '100%', padding: '0.75rem', marginBottom: '1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                        />
+                        <textarea 
+                          placeholder="Explain your approach (optional)..."
+                          value={publishDesc}
+                          onChange={(e) => setPublishDesc(e.target.value)}
+                          style={{ width: '100%', padding: '0.75rem', marginBottom: '1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', minHeight: '80px', fontFamily: 'var(--font-geist-sans)' }}
+                        />
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                          <button 
+                            className="btn btn-primary"
+                            disabled={!publishTitle.trim() || isPublishing}
+                            onClick={async () => {
+                              setIsPublishing(true);
+                              try {
+                                const res = await fetch('/api/solutions', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ problemId: problem.id, submissionId: lastSubmissionId, title: publishTitle, description: publishDesc })
+                                });
+                                const data = await res.json();
+                                if (data.success) {
+                                  alert('Solution published successfully!');
+                                  setShowPublishForm(false);
+                                  setActiveTab('solutions'); // Switch to solutions tab
+                                } else {
+                                  alert(data.error || 'Failed to publish');
+                                }
+                              } catch(e) {
+                                alert('Error publishing');
+                              }
+                              setIsPublishing(false);
+                            }}
+                          >
+                            {isPublishing ? 'Publishing...' : 'Publish'}
+                          </button>
+                          <button className="btn btn-secondary" onClick={() => setShowPublishForm(false)}>Cancel</button>
+                        </div>
                       </div>
                     )}
                     
@@ -618,6 +755,14 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
                 <option value="">System Default</option>
                 <option value="vs-dark">VS Dark</option>
                 <option value="light">Light</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Keybindings</label>
+              <select value={vimMode ? 'vim' : 'standard'} onChange={e => setVimMode(e.target.value === 'vim')} style={{ width: '100%', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.5rem', borderRadius: 'var(--radius-sm)' }}>
+                <option value="standard">Standard</option>
+                <option value="vim">Vim Mode</option>
               </select>
             </div>
             

@@ -6,9 +6,9 @@ const lc = new LeetCode();
 
 async function main() {
   console.log("Fetching top 500 problems from LeetCode...");
-  let problems = [];
+  let problems: any[] = [];
   for (let i = 0; i < 5; i++) {
-    const data = await lc.problems({ limit: 100, skip: i * 100 });
+    const data = await lc.problems({ limit: 100, offset: i * 100 });
     problems = problems.concat(data.questions);
     console.log(`Fetched ${problems.length} problems so far...`);
   }
@@ -28,7 +28,7 @@ async function main() {
       cpp: `#include <iostream>\nusing namespace std;\n\nint main() {\n    // Implement your solution here\n    return 0;\n}`
     };
 
-    const tags = p.topicTags.map(t => t.name).join(', ');
+    const tags = p.topicTags.map((t: any) => t.name).join(', ');
 
     await prisma.problem.create({
       data: {
