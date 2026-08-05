@@ -4,11 +4,12 @@ import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-export default async function StudyPlanDetailsPage({ params }: { params: { slug: string } }) {
+export default async function StudyPlanDetailsPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   const session = await getServerSession(authOptions);
   
   const plan = await prisma.studyPlan.findUnique({
-    where: { slug: params.slug },
+    where: { slug: slug },
     include: {
       problems: {
         orderBy: { order: 'asc' },
