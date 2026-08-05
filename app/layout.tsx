@@ -22,7 +22,7 @@ import { authOptions } from "../lib/auth";
 import { LogoutButton } from "./LogoutButton";
 
 export const metadata: Metadata = {
-  title: "CodeNexus | Elevate Your Coding",
+  title: "CodeCook | Elevate Your Coding",
   description: "A comprehensive coding platform combining practice, learning, and community.",
 };
 
@@ -40,7 +40,7 @@ export default async function RootLayout({
           <ThemeProvider>
             <header className={styles.header}>
               <Link href="/" className={styles.logo}>
-                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>CodeNexus</span>
+                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>CodeCook</span>
               </Link>
               <nav className={styles.nav}>
                 {session && (
