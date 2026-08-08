@@ -612,8 +612,8 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
                   <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-geist-mono)' }}>
                     {output.status && (
                       <div style={{ color: output.status === 'Accepted' ? 'var(--success)' : 'var(--error)', fontWeight: 'bold', marginBottom: '1rem', fontSize: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>{output.status}</span>
-                        {output.status === 'Accepted' && lastSubmissionId && (
+                        <span>{output.metrics?.total !== undefined && output.status === 'Accepted' ? 'Accepted' : (output.status === 'Accepted' ? 'Execution Complete' : output.status)}</span>
+                        {output.status === 'Accepted' && output.metrics?.total !== undefined && lastSubmissionId && (
                           <button 
                             className="btn btn-primary" 
                             style={{ fontSize: '0.9rem', padding: '0.4rem 0.8rem' }}
