@@ -36,21 +36,24 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
 
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLang = e.target.value;
-    const currentTemplate = parsedStarterCode[language] || CODE_TEMPLATES[language] || "";
-    
-    if (code !== currentTemplate) {
-      if (!window.confirm("You have modified the code. Are you sure you want to switch languages? Your changes will be lost.")) {
-        return;
-      }
-    }
-
     setLanguage(newLang);
-    setCode(parsedStarterCode[newLang] || CODE_TEMPLATES[newLang] || "");
+    const savedCode = localStorage.getItem(`codenexus_code_${problem.id}_${newLang}`);
+    setCode(savedCode || parsedStarterCode[newLang] || CODE_TEMPLATES[newLang] || "");
   };
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    const savedCode = localStorage.getItem(`codenexus_code_${problem.id}_typescript`);
+    if (savedCode) {
+      setCode(savedCode);
+    }
+  }, [problem.id]);
+
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem(`codenexus_code_${problem.id}_${language}`, code);
+    }
+  }, [code, language, problem.id, mounted]);
 
   const currentTheme = theme === 'system' ? systemTheme : theme;
   const [editorThemeOverride, setEditorThemeOverride] = useState("");

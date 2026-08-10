@@ -31,8 +31,20 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
+  const allProblems = await prisma.problem.findMany({ select: { id: true, difficulty: true } });
+  
+  const totalEasy = allProblems.filter(p => p.difficulty === 'Easy').length;
+  const totalMedium = allProblems.filter(p => p.difficulty === 'Medium').length;
+  const totalHard = allProblems.filter(p => p.difficulty === 'Hard').length;
+
   // Calculate unique problems solved based on Accepted submissions
-  const uniqueSolved = new Set(user.submissions.filter(s => s.status === "Accepted").map(s => s.problemId)).size;
+  const solvedIds = new Set(user.submissions.filter(s => s.status === "Accepted").map(s => s.problemId));
+  const uniqueSolved = solvedIds.size;
+  
+  const solvedEasy = allProblems.filter(p => p.difficulty === 'Easy' && solvedIds.has(p.id)).length;
+  const solvedMedium = allProblems.filter(p => p.difficulty === 'Medium' && solvedIds.has(p.id)).length;
+  const solvedHard = allProblems.filter(p => p.difficulty === 'Hard' && solvedIds.has(p.id)).length;
+
   const dailyChallenge = await getDailyChallenge();
 
   return (
@@ -58,6 +70,36 @@ export default async function DashboardPage() {
         <div className={styles.statCard}>
           <div className={styles.statLabel}>Problems Solved</div>
           <div className={styles.statValue}>{uniqueSolved}</div>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '2rem', display: 'flex', gap: '2rem', padding: '1.5rem', background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+            <span style={{ fontWeight: 500, color: 'var(--success)' }}>Easy</span>
+            <span style={{ color: 'var(--text-secondary)' }}>{solvedEasy} / {totalEasy}</span>
+          </div>
+          <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--bg-tertiary)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+            <div style={{ width: `${totalEasy > 0 ? (solvedEasy / totalEasy) * 100 : 0}%`, height: '100%', backgroundColor: 'var(--success)' }} />
+          </div>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+            <span style={{ fontWeight: 500, color: 'var(--warning)' }}>Medium</span>
+            <span style={{ color: 'var(--text-secondary)' }}>{solvedMedium} / {totalMedium}</span>
+          </div>
+          <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--bg-tertiary)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+            <div style={{ width: `${totalMedium > 0 ? (solvedMedium / totalMedium) * 100 : 0}%`, height: '100%', backgroundColor: 'var(--warning)' }} />
+          </div>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+            <span style={{ fontWeight: 500, color: 'var(--error)' }}>Hard</span>
+            <span style={{ color: 'var(--text-secondary)' }}>{solvedHard} / {totalHard}</span>
+          </div>
+          <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--bg-tertiary)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+            <div style={{ width: `${totalHard > 0 ? (solvedHard / totalHard) * 100 : 0}%`, height: '100%', backgroundColor: 'var(--error)' }} />
+          </div>
         </div>
       </div>
 
