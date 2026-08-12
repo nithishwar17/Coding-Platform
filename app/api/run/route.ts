@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { submitToJudge0, JUDGE0_LANGUAGE_MAP } from '../../../lib/judge0';
+import { submitToCompiler } from '../../../lib/compiler';
 import { getTestHarness } from '../../../lib/testHarness';
 
 export async function POST(request: Request) {
@@ -10,14 +10,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Language and sourceCode are required' }, { status: 400 });
     }
 
-    const languageId = JUDGE0_LANGUAGE_MAP[language];
-    if (!languageId) {
-      return NextResponse.json({ error: `Unsupported language: ${language}` }, { status: 400 });
-    }
-
     const executableCode = getTestHarness(language, sourceCode);
 
-    const data = await submitToJudge0(executableCode, languageId, stdin);
+    const data = await submitToCompiler(executableCode, language, stdin);
     
     // Normalize response for the frontend
     return NextResponse.json({

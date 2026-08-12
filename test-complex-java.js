@@ -1,79 +1,6 @@
-export function getTestHarness(language: string, code: string) {
-  if (language === 'javascript' || language === 'typescript') {
-    return `${code}
+const fetch = require('node-fetch');
 
-// --- TEST HARNESS ---
-const fs = require('fs');
-let inputStr = '';
-try {
-  inputStr = fs.readFileSync(0, 'utf-8');
-} catch (e) {}
-
-if (inputStr.trim()) {
-  try {
-    const inputObj = JSON.parse(inputStr);
-    let inputs;
-    if (typeof inputObj === 'object' && inputObj !== null) {
-      if (Array.isArray(inputObj)) {
-        inputs = inputObj;
-      } else {
-        inputs = Object.values(inputObj);
-      }
-    } else {
-      inputs = [inputObj];
-    }
-    
-    let fn = typeof solution === 'function' ? solution : null;
-    if (!fn) {
-      const funcs = Object.values(globalThis).filter(f => typeof f === 'function');
-      if (funcs.length > 0) fn = funcs[funcs.length - 1];
-    }
-
-    if (fn) {
-      const result = fn(...inputs);
-      const resultStr = typeof result === 'string' ? result : JSON.stringify(result);
-      console.log(resultStr);
-    }
-  } catch (e) {
-    console.error(e);
-  }
-}
-`;
-  } else if (language === 'python') {
-    return `${code}
-
-# --- TEST HARNESS ---
-import sys
-import json
-import types
-
-input_str = sys.stdin.read().strip()
-if input_str:
-    try:
-        input_obj = json.loads(input_str)
-        if isinstance(input_obj, dict):
-            inputs = list(input_obj.values())
-        elif isinstance(input_obj, list):
-            inputs = input_obj
-        else:
-            inputs = [input_obj]
-            
-        user_funcs = [f for n, f in globals().items() if isinstance(f, types.FunctionType) and n != 'json' and n != 'sys']
-        func = user_funcs[-1] if user_funcs else None
-        if 'solution' in globals():
-            func = globals()['solution']
-        elif 'twoSum' in globals():
-            func = globals()['twoSum']
-            
-        if func:
-            result = func(*inputs)
-            result_str = result if isinstance(result, str) else json.dumps(result)
-            print(result_str)
-    except Exception as e:
-        print(e, file=sys.stderr)
-`;
-  } else if (language === 'java') {
-    return `import java.lang.reflect.*;
+const code = `import java.lang.reflect.*;
 import java.util.*;
 
 class ListNode {
@@ -97,7 +24,17 @@ class TreeNode {
     }
 }
 
-${code}
+class Solution {
+    public List<List<String>> groupAnagrams(String[] strs) {
+        return Arrays.asList(Arrays.asList("bat"), Arrays.asList("nat", "tan"), Arrays.asList("ate", "eat", "tea"));
+    }
+    
+    public ListNode mergeTwoLists(ListNode list1, ListNode list2) {
+        ListNode dummy = new ListNode(0);
+        dummy.next = list1;
+        return dummy.next; // Just a dummy test
+    }
+}
 
 // --- TEST HARNESS ---
 public class Main {
@@ -275,7 +212,7 @@ public class Main {
                 sb.append(arr[i]);
                 if(i < arr.length-1) sb.append(",");
             }
-            return sb.append("]");
+            return sb.append("]").toString();
         }
         if (obj instanceof String[]) {
             String[] arr = (String[]) obj;
@@ -284,7 +221,7 @@ public class Main {
                 sb.append("\\"").append(arr[i]).append("\\"");
                 if(i < arr.length-1) sb.append(",");
             }
-            return sb.append("]");
+            return sb.append("]").toString();
         }
         if (obj instanceof List) {
             List<?> list = (List<?>) obj;
@@ -293,7 +230,7 @@ public class Main {
                 sb.append(serialize(list.get(i)));
                 if(i < list.size()-1) sb.append(",");
             }
-            return sb.append("]");
+            return sb.append("]").toString();
         }
         if (obj instanceof ListNode) {
             ListNode curr = (ListNode) obj;
@@ -303,11 +240,40 @@ public class Main {
                 if (curr.next != null) sb.append(",");
                 curr = curr.next;
             }
-            return sb.append("]");
+            return sb.append("]").toString();
         }
         return obj.toString();
     }
 }`;
-  }
-  return code;
+
+async function test(method, stdin) {
+  const codeToRun = code.replace(/Method target = null;\s*for \(Method m : methods\) {\s*if \(m.getName\(\).equals\("main"\)\) continue;\s*target = m;\s*break;\s*}/, 
+    \`Method target = null;
+    for (Method m : methods) {
+        if (m.getName().equals("\${method}")) {
+            target = m;
+            break;
+        }
+    }\`);
+
+  const res = await fetch("https://api.jdoodle.com/v1/execute", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      clientId: "a4906460ffc3a4c54fcda77bf3f3ff7a",
+      clientSecret: "c1e6542c1a46f72f5baa69c2857e666859d3bf92d6d0ddcca1bf73b76602cdcb",
+      script: codeToRun,
+      language: "java",
+      versionIndex: "4",
+      stdin: stdin
+    })
+  });
+  const data = await res.json();
+  console.log(\`Test \${method} Output:\`, data);
 }
+
+async function run() {
+    await test("groupAnagrams", JSON.stringify({ strs: ["eat","tea","tan","ate","nat","bat"] }));
+    await test("mergeTwoLists", JSON.stringify({ list1: [1,2,4], list2: [1,3,4] }));
+}
+run();

@@ -3,7 +3,7 @@ import { prisma } from '../../../lib/db';
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
 import { getTestHarness } from "../../../lib/testHarness";
-import { submitToJudge0, JUDGE0_LANGUAGE_MAP } from '../../../lib/judge0';
+import { submitToCompiler } from '../../../lib/compiler';
 
 export async function POST(req: Request) {
   try {
@@ -18,11 +18,6 @@ export async function POST(req: Request) {
 
     if (!problemId || !language || !sourceCode) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-
-    const languageId = JUDGE0_LANGUAGE_MAP[language];
-    if (!languageId) {
-      return NextResponse.json({ error: `Unsupported language: ${language}` }, { status: 400 });
     }
 
     const problem = await prisma.problem.findUnique({ 
@@ -45,14 +40,14 @@ export async function POST(req: Request) {
 
     for (const tc of problem.testCases) {
       try {
-        const data = await submitToJudge0(executableCode, languageId, tc.input);
+        const data = await submitToCompiler(executableCode, language, tc.input);
         
         const runtime = parseFloat(data.time) * 1000 || 0;
         const memory = data.memory || 0;
         maxRuntime = Math.max(maxRuntime, runtime);
         maxMemory = Math.max(maxMemory, memory);
 
-        if (data.status?.id !== 3) { // 3 is Accepted in Judge0
+        if (data.status?.description !== 'Accepted') {
           finalVerdict = data.status?.description || 'Runtime Error';
           failedCase = tc.input;
           actualOutput = (data.compile_output || data.stderr || data.stdout || "").trim();

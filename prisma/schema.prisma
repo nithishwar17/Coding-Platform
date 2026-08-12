@@ -31,6 +31,9 @@ model Problem {
   difficulty  String
   description String
   tags        String
+  constraints String?
+  hints       String?
+  companies   String?
   testCases   TestCase[]
   starterCode   String?      // JSON stringified map of language -> boilerplate
   submissions   Submission[]

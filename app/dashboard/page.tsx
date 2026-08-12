@@ -28,7 +28,7 @@ export default async function DashboardPage() {
   });
 
   if (!user) {
-    redirect("/login");
+    redirect("/force-logout");
   }
 
   const allProblems = await prisma.problem.findMany({ select: { id: true, difficulty: true } });
@@ -104,6 +104,49 @@ export default async function DashboardPage() {
       </div>
 
       <Heatmap submissions={user.submissions} />
+
+      <h2 style={{ marginBottom: '1.5rem', marginTop: '2rem', fontWeight: 600, fontSize: '1.5rem' }}>Recent Submissions</h2>
+      <div style={{ background: 'var(--bg-tertiary)', borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden', marginBottom: '2rem' }}>
+        {user.submissions.length > 0 ? (
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
+                <th style={{ padding: '1rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Problem</th>
+                <th style={{ padding: '1rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Status</th>
+                <th style={{ padding: '1rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Language</th>
+                <th style={{ padding: '1rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {user.submissions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 5).map(sub => {
+                const problem = allProblems.find(p => p.id === sub.problemId);
+                return (
+                  <tr key={sub.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '1rem' }}>
+                      <Link href={`/playground?id=${sub.problemId}`} style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 500 }}>
+                        {problem?.title || `Problem ${sub.problemId}`}
+                      </Link>
+                    </td>
+                    <td style={{ padding: '1rem', color: sub.status === 'Accepted' ? 'var(--success)' : 'var(--error)', fontWeight: 500 }}>
+                      {sub.status}
+                    </td>
+                    <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>
+                      {sub.language}
+                    </td>
+                    <td style={{ padding: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                      {new Date(sub.createdAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+            No submissions yet. Time to solve your first problem!
+          </div>
+        )}
+      </div>
 
       <h2 style={{ marginBottom: '1.5rem', marginTop: '2rem', fontWeight: 600, fontSize: '1.5rem' }}>Quick Actions</h2>
       <div className={styles.actionsGrid}>

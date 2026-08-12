@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
-
-// TODO: To connect to a real AI, import your SDK here:
-// import { GoogleGenerativeAI } from "@google/genai";
-// const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+import { GoogleGenAI } from "@google/genai";
 
 export async function POST(req: Request) {
   try {
@@ -12,29 +9,36 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing prompt" }, { status: 400 });
     }
 
-    // Simulated network delay for AI "thinking" (1.5 seconds)
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    let simulatedResponse = "";
-    
-    const lowerPrompt = prompt.toLowerCase();
-    
-    if (lowerPrompt.includes("hint")) {
-      simulatedResponse = `Here's a hint for **${problemTitle || 'this problem'}**: Try breaking down the problem into smaller sub-problems. Have you considered using a hash map or two pointers to optimize your search?`;
-    } else if (lowerPrompt.includes("time complexity")) {
-      simulatedResponse = `Looking at your code, if you are using nested loops to iterate over the array, the time complexity is likely **O(N²)**. To optimize this, try aiming for **O(N)** time by doing a single pass and storing seen elements.`;
-    } else if (lowerPrompt.includes("analyze")) {
-      simulatedResponse = `I've analyzed your code. It looks like you have a good grasp of the basic logic! However, be careful with edge cases—what happens if the input array is empty or contains negative numbers? Consider adding an early return for those cases.`;
-    } else {
-      simulatedResponse = `This is a simulated AI Mentor response to your custom question: "${prompt}".\n\n*(In a production environment with a real API key configured, this would evaluate your code: \n\`\`\`\n${code?.substring(0, 50)}...\n\`\`\`\nand give a genuine response!)*`;
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json({ 
+        response: "The platform's AI Mentor requires a `GEMINI_API_KEY` in the `.env` file to function. Please configure this key to unlock real-time code analysis and hints!"
+      });
     }
 
-    // TODO: Real Implementation Example:
-    // const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
-    // const result = await model.generateContent(`Problem: ${problemTitle}\nCode:\n${code}\nUser Prompt:\n${prompt}`);
-    // return NextResponse.json({ response: result.response.text() });
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-    return NextResponse.json({ response: simulatedResponse });
+    const systemInstruction = `You are an expert AI coding mentor integrated into a competitive programming platform (like LeetCode).
+Your job is to help the user with the problem: "${problemTitle || 'Unknown'}".
+The user's current code is:
+\`\`\`
+${code || '(No code provided)'}
+\`\`\`
+RULES:
+1. Do NOT write out the full solution for them.
+2. Be encouraging, concise, and pedagogical.
+3. If they ask for a hint, give them a subtle clue about the optimal data structure or algorithm.
+4. If they ask about time complexity, analyze their provided code and explain the Big O notation simply.
+5. Format your response cleanly using Markdown.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            systemInstruction: systemInstruction,
+        }
+    });
+
+    return NextResponse.json({ response: response.text });
 
   } catch (error) {
     console.error("Mentor API Error:", error);

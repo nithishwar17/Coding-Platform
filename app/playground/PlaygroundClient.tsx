@@ -9,13 +9,8 @@ import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "reac
 import SolutionsTab from "./SolutionsTab";
 
 const CODE_TEMPLATES: Record<string, string> = {
-  javascript: "function solution(nums, target) {\n  \n}",
-  typescript: "function solution(nums: any, target: any) {\n  \n}",
   python: "def solution(*args):\n    pass",
-  java: "class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello CodeNexus!\");\n    }\n}",
-  cpp: "#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << \"Hello CodeNexus!\" << endl;\n    return 0;\n}",
-  go: "package main\nimport \"fmt\"\n\nfunc main() {\n    fmt.Println(\"Hello CodeNexus!\")\n}",
-  rust: "fn main() {\n    println!(\"Hello CodeNexus!\");\n}"
+  java: "class Solution {\n    public void solve() {\n        \n    }\n}"
 };
 
 export default function PlaygroundClient({ problem }: { problem: any }) {
@@ -27,9 +22,9 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
   } catch(e) {}
 
   const [activeTab, setActiveTab] = useState("description");
-  const [language, setLanguage] = useState("typescript");
+  const [language, setLanguage] = useState("python");
   const [code, setCode] = useState(() => {
-    return parsedStarterCode["typescript"] || CODE_TEMPLATES["typescript"];
+    return parsedStarterCode["python"] || CODE_TEMPLATES["python"];
   });
   const { theme, systemTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -43,11 +38,11 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
 
   useEffect(() => {
     setMounted(true);
-    const savedCode = localStorage.getItem(`codenexus_code_${problem.id}_typescript`);
+    const savedCode = localStorage.getItem(`codenexus_code_${problem.id}_${language}`);
     if (savedCode) {
       setCode(savedCode);
     }
-  }, [problem.id]);
+  }, [problem.id, language]);
 
   useEffect(() => {
     if (mounted) {
@@ -304,7 +299,44 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
               <div 
                 className={styles.problemDescription}
                 dangerouslySetInnerHTML={{ __html: problem.description.replace(/\n/g, '<br/>').replace(/```text/g, '<pre>').replace(/```/g, '</pre>') }}
+                style={{ marginBottom: '2rem' }}
               />
+              
+              {problem.companies && (
+                <div style={{ marginBottom: '2rem' }}>
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--text-primary)' }}>Companies</h3>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {problem.companies.split(',').map((company: string, i: number) => (
+                      <span key={i} style={{ padding: '0.25rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: '999px', fontSize: '0.85rem', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>
+                        {company.trim()}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {problem.constraints && (
+                <div style={{ marginBottom: '2rem' }}>
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--text-primary)' }}>Constraints:</h3>
+                  <div 
+                    className={styles.constraintsBlock}
+                    style={{ background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
+                    dangerouslySetInnerHTML={{ __html: problem.constraints }}
+                  />
+                </div>
+              )}
+
+              {problem.hints && (
+                <div style={{ marginBottom: '2rem' }}>
+                  <details style={{ background: 'var(--bg-tertiary)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                    <summary style={{ fontWeight: 500, color: 'var(--text-primary)', outline: 'none' }}>💡 Show Hints</summary>
+                    <div 
+                      style={{ marginTop: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6 }}
+                      dangerouslySetInnerHTML={{ __html: problem.hints }}
+                    />
+                  </details>
+                </div>
+              )}
             </div>
           )}
           {activeTab === 'notes' && (
@@ -452,14 +484,20 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
               value={language}
               onChange={handleLanguageChange}
             >
-              <option value="typescript">TypeScript</option>
-              <option value="javascript">JavaScript</option>
               <option value="python">Python</option>
               <option value="java">Java</option>
-              <option value="cpp">C++</option>
-              <option value="go">Go</option>
-              <option value="rust">Rust</option>
             </select>
+            <button 
+              className="btn btn-secondary" 
+              onClick={() => {
+                if (window.confirm("Are you sure you want to reset your code to the default template? This will erase your current code.")) {
+                  setCode(parsedStarterCode[language] || CODE_TEMPLATES[language] || "");
+                }
+              }} 
+              style={{ padding: '0.4rem 0.8rem', fontSize: '12px', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
+            >
+              Reset Code
+            </button>
 
             <div className={styles.actionButtons}>
               <button className="btn btn-secondary" onClick={() => setShowSettings(true)} style={{ padding: '0.4rem 0.6rem', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>⚙️</button>
