@@ -7,6 +7,7 @@ import { useTheme } from "next-themes";
 import { Problem } from "@prisma/client";
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
 import SolutionsTab from "./SolutionsTab";
+import ReactMarkdown from 'react-markdown';
 
 const CODE_TEMPLATES: Record<string, string> = {
   python: "def solution(*args):\n    pass",
@@ -298,7 +299,7 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
               </div>
               <div 
                 className={styles.problemDescription}
-                dangerouslySetInnerHTML={{ __html: problem.description.replace(/\n/g, '<br/>').replace(/```text/g, '<pre>').replace(/```/g, '</pre>') }}
+                dangerouslySetInnerHTML={{ __html: problem.description.includes("Note: The full description") ? "<p>Write your solution below. You can customize the inputs in the <b>Test Cases</b> tab.</p>" : problem.description.replace(/\n/g, '<br/>').replace(/```text/g, '<pre>').replace(/```/g, '</pre>') }}
                 style={{ marginBottom: '2rem' }}
               />
               
@@ -383,9 +384,14 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
                         borderRadius: msg.role === 'user' ? '1rem 1rem 0 1rem' : '1rem 1rem 1rem 0',
                         lineHeight: 1.5,
                         fontSize: '0.95rem',
-                        border: msg.role === 'user' ? 'none' : '1px solid var(--border-color)'
+                        border: msg.role === 'user' ? 'none' : '1px solid var(--border-color)',
+                        overflowX: 'auto'
                       }}>
-                        {msg.content}
+                        {msg.role === 'user' ? msg.content : (
+                          <div className={styles.mentorMarkdown}>
+                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))
@@ -602,15 +608,14 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
                         className={styles.testCaseValue}
                         style={{ fontFamily: 'var(--font-geist-mono)', whiteSpace: 'pre-wrap', width: '100%', minHeight: '60px' }}
                         value={typeof testCases[activeTestCaseIndex]?.input === 'object' && testCases[activeTestCaseIndex].input !== null 
-                          ? Object.entries(testCases[activeTestCaseIndex].input).map(([k, v]) => `${k} = ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`).join('\n')
+                          ? (Array.isArray(testCases[activeTestCaseIndex].input) ? JSON.stringify(testCases[activeTestCaseIndex].input) : Object.entries(testCases[activeTestCaseIndex].input).map(([k, v]) => `${k} = ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`).join('\n'))
                           : String(testCases[activeTestCaseIndex]?.input || '')
                         }
                         onChange={(e) => {
                           const val = e.target.value;
                           const newTc = [...testCases];
                           
-                          // Simple parse: "nums = [1,2]\ntarget = 3"
-                          if (typeof newTc[activeTestCaseIndex].input === 'object' && newTc[activeTestCaseIndex].input !== null) {
+                          if (val.includes('=')) {
                             const lines = val.split('\n');
                             const newInput: any = {};
                             lines.forEach(line => {
@@ -623,7 +628,11 @@ export default function PlaygroundClient({ problem }: { problem: any }) {
                             });
                             newTc[activeTestCaseIndex].input = newInput;
                           } else {
-                            newTc[activeTestCaseIndex].input = val;
+                            try {
+                              newTc[activeTestCaseIndex].input = JSON.parse(val);
+                            } catch {
+                              newTc[activeTestCaseIndex].input = val;
+                            }
                           }
                           setTestCases(newTc);
                         }}

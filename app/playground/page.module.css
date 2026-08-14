@@ -217,3 +217,16 @@
   0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
   40% { opacity: 1; transform: scale(1.2); }
 }
+
+.mentorMarkdown {
+  font-family: var(--font-geist-sans);
+}
+.mentorMarkdown p { margin-bottom: 0.75rem; }
+.mentorMarkdown p:last-child { margin-bottom: 0; }
+.mentorMarkdown code { background: rgba(0,0,0,0.1); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: var(--font-geist-mono); font-size: 0.9em; }
+.mentorMarkdown pre { background: rgba(0,0,0,0.1); padding: 0.75rem; border-radius: 6px; overflow-x: auto; margin-bottom: 0.75rem; }
+.mentorMarkdown pre code { background: transparent; padding: 0; }
+.mentorMarkdown ul, .mentorMarkdown ol { margin-left: 1.5rem; margin-bottom: 0.75rem; }
+.mentorMarkdown li { margin-bottom: 0.25rem; }
+.mentorMarkdown h1, .mentorMarkdown h2, .mentorMarkdown h3 { margin-bottom: 0.5rem; margin-top: 1rem; font-size: 1.1em; }
+.mentorMarkdown h1:first-child, .mentorMarkdown h2:first-child, .mentorMarkdown h3:first-child { margin-top: 0; }

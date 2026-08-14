@@ -31,7 +31,7 @@ RULES:
 5. Format your response cleanly using Markdown.`;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
         contents: prompt,
         config: {
             systemInstruction: systemInstruction,
@@ -40,8 +40,18 @@ RULES:
 
     return NextResponse.json({ response: response.text });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Mentor API Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    
+    let errorMessage = "Sorry, I ran into an error processing that request.";
+    if (error?.status === 400 && error?.message?.includes("API key not valid")) {
+      errorMessage = "The GEMINI_API_KEY you provided is invalid. Please double check it in your .env.local file!";
+    } else if (error?.status === 404) {
+      errorMessage = "Model not found. This API key doesn't seem to have access to the requested Gemini model.";
+    } else if (error?.message) {
+      errorMessage = "AI Mentor Error: " + error.message;
+    }
+    
+    return NextResponse.json({ response: errorMessage });
   }
 }
