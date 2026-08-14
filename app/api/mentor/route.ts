@@ -42,9 +42,9 @@ RULES:
           return NextResponse.json({ response: response.text });
         } catch (innerError: any) {
           if (innerError.status === 503) {
-            console.log("gemini-3.5-flash is unavailable, falling back to gemini-3.0-flash...");
+            console.log("gemini-3.5-flash is unavailable, falling back to gemini-3.5-flash-lite...");
             const fallbackResponse = await ai.models.generateContent({
-              model: 'gemini-3.0-flash',
+              model: 'gemini-3.5-flash-lite',
               contents: prompt,
               config: {
                 systemInstruction: systemInstruction,
