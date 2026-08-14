@@ -30,15 +30,31 @@ RULES:
 4. If they ask about time complexity, analyze their provided code and explain the Big O notation simply.
 5. Format your response cleanly using Markdown.`;
 
-    const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
-        contents: prompt,
-        config: {
-            systemInstruction: systemInstruction,
+        try {
+          const response = await ai.models.generateContent({
+            model: 'gemini-3.5-flash',
+            contents: prompt,
+            config: {
+              systemInstruction: systemInstruction,
+              temperature: 0.7,
+            }
+          });
+          return NextResponse.json({ response: response.text });
+        } catch (innerError: any) {
+          if (innerError.status === 503) {
+            console.log("gemini-3.5-flash is unavailable, falling back to gemini-3.0-flash...");
+            const fallbackResponse = await ai.models.generateContent({
+              model: 'gemini-3.0-flash',
+              contents: prompt,
+              config: {
+                systemInstruction: systemInstruction,
+                temperature: 0.7,
+              }
+            });
+            return NextResponse.json({ response: fallbackResponse.text });
+          }
+          throw innerError;
         }
-    });
-
-    return NextResponse.json({ response: response.text });
 
   } catch (error: any) {
     console.error("Mentor API Error:", error);
