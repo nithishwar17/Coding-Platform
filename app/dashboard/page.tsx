@@ -31,7 +31,7 @@ export default async function DashboardPage() {
     redirect("/force-logout");
   }
 
-  const allProblems = await prisma.problem.findMany({ select: { id: true, difficulty: true } });
+  const allProblems = await prisma.problem.findMany({ select: { id: true, difficulty: true, title: true } });
   
   const totalEasy = allProblems.filter(p => p.difficulty === 'Easy').length;
   const totalMedium = allProblems.filter(p => p.difficulty === 'Medium').length;
